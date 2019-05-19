@@ -75,10 +75,15 @@ def chekBlueRegion(Point):
 #all driver
 def main():  
 	calculateDel()
-	driverLogitude=numberGenerator.arange(CornerPoint4[y],CornerPoint2[y],0.001)
-	driverLatitude=numberGenerator.arange(CornerPoint1[x],CornerPoint3[x],0.001)
+	driverLogitude=numberGenerator.arange(CornerPoint4[y],CornerPoint2[y],0.01)
+	driverLatitude=numberGenerator.arange(CornerPoint1[x],CornerPoint3[x],0.01)
 	driverLogitude2=driverLogitude
 	driverLatitude2=driverLatitude
+	errorInfoFile=open("apiconnectionerror.txt","rt")
+	numberOfBluesWritten=errorInfoFile.read()
+	numberOfBluesWritten=int(numberOfBluesWritten)
+	errorInfoFile.close()
+	numberOfBlueLoopON=0
 	for originLatitude in driverLatitude:
 		for orgiginLongitude in driverLogitude:
 			if(chekBlueRegion([originLatitude,orgiginLongitude])==1):
@@ -92,17 +97,30 @@ def main():
 						connectionStatus=1
 						start=[originLatitude,orgiginLongitude]
 						terminate=[destinationLatitude,destinationLongitude]
-						if(chekBlueRegion(start)==1 and chekBlueRegion(terminate)==1):
-							while(connectionStatus):
-								try:
-									temp=GoogleDistanceAndTime(start,terminate)
-									connectionStatus=0
-								except:
-									print("\t\t\t\t:::SOME Connection Issue:::\t\t\t:::RETRYING::::")
-							DataFile.write(str(start[0])+","+str(start[1])+","+str(terminate[0])+","+str(terminate[1])+","+str(temp[0])+","+str(temp[1])+"\n")
-							print("start::",start,"terminate::",terminate,"::::IN BLUE REGION \n \t\t\t",temp,":::DONE")
+						CheckBlue=chekBlueRegion(terminate)
+						if(CheckBlue==1):
+								numberOfBlueLoopON=numberOfBlueLoopON+1
+						if(numberOfBluesWritten<numberOfBlueLoopON):
+							if(CheckBlue==1):
+								while(connectionStatus):
+									try:
+										temp=GoogleDistanceAndTime(start,terminate)
+										connectionStatus=0
+									except:
+										print("\t\t\t\t:::SOME Connection Issue:::\t\t\t:::RETRYING::::")
+									if(temp[0]==-1):
+										errorInfoFile=open("apiconnectionerror.txt","wt")
+										errorInfoFile.write(str(numberOfBlueLoopON-1))
+										errorInfoFile.close()
+										print("API Daily requests qota achieved")
+										DataFile.close()
+										return()
+								DataFile.write(str(start[0])+","+str(start[1])+","+str(terminate[0])+","+str(terminate[1])+","+str(temp[0])+","+str(temp[1])+"\n")
+								print("start::",start,"terminate::",terminate,"::::IN BLUE REGION \n \t\t\t",temp,":::DONE")
+							else:
+								print("start::",start,"terminate::",terminate,"::::IN RED REGION \n \t\t\t:::DONE")
 						else:
-							print("start::",start,"terminate::",terminate,"::::IN RED REGION \n \t\t\t:::DONE")
+							print("Already Written DataSet")	
 					DataFile.close()
 			else:
 				print("\t\t\tORININ IN RED:::",[originLatitude,orgiginLongitude],":::DONE:::")
